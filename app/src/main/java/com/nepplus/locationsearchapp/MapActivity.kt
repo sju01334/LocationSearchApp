@@ -1,8 +1,13 @@
 package com.nepplus.locationsearchapp
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -39,8 +44,12 @@ class MapActivity: AppCompatActivity(), OnMapReadyCallback {
                 setupGoogleMap()
             }
         }
+    }
 
-
+    private fun bindViews() = with(binding) {
+        currentLocationButton.setOnClickListener {
+            getMyLocation()
+        }
     }
 
     private fun setupGoogleMap(){
@@ -65,6 +74,35 @@ class MapActivity: AppCompatActivity(), OnMapReadyCallback {
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(positionLatLng, CAMERA_ZOOM_LEVEL))
 
         return map.addMarker(markerOptions)
+    }
+
+    private fun getMyLocation() {
+        if (::locationManager.isInitialized.not()) {
+            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        }
+        val isGpsEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        if (isGpsEnable) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ),
+                    PERMISSION_REQUEST_CODE
+                )
+            } else {
+//                setMyLocationListener()
+            }
+        }
     }
 
 
