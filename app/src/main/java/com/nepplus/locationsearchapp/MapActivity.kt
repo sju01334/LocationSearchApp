@@ -1,10 +1,14 @@
 package com.nepplus.locationsearchapp
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -16,6 +20,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.nepplus.locationsearchapp.databinding.ActivityMapBinding
+import com.nepplus.locationsearchapp.model.LocationLatLngEntity
 import com.nepplus.locationsearchapp.model.SearchResultEntity
 
 class MapActivity: AppCompatActivity(), OnMapReadyCallback {
@@ -31,7 +36,7 @@ class MapActivity: AppCompatActivity(), OnMapReadyCallback {
     private lateinit var searchResult: SearchResultEntity
     private  var currentSelectMarker : Marker? = null
     private lateinit var locationManager: LocationManager
-//    private lateinit var myLocationListener: MyLocationListener
+    private lateinit var myLocationListener: MyLocationListener
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +49,8 @@ class MapActivity: AppCompatActivity(), OnMapReadyCallback {
                 setupGoogleMap()
             }
         }
+
+        bindViews()
     }
 
     private fun bindViews() = with(binding) {
@@ -77,11 +84,16 @@ class MapActivity: AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun getMyLocation() {
+        //초기화가 안되었으면
         if (::locationManager.isInitialized.not()) {
+            //초기화 해줘!
             locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         }
+        //GPS 가능여부 체크해줘!
         val isGpsEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        //GPS 허락 받았으면
         if (isGpsEnable) {
+            //권한이 둘중에 하나라도 없으면
             if (ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.ACCESS_FINE_LOCATION
@@ -100,9 +112,60 @@ class MapActivity: AppCompatActivity(), OnMapReadyCallback {
                     PERMISSION_REQUEST_CODE
                 )
             } else {
-//                setMyLocationListener()
+                setMyLocationListener()
             }
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private  fun setMyLocationListener(){
+        //최소시간 설정
+        val minTime = 1500L
+        //최소 허용 거리단위
+        val minDistance = 100f
+
+        if(::myLocationListener.isInitialized.not()){
+            myLocationListener = MyLocationListener()
+        }
+
+        with(locationManager){
+            requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                minTime, minDistance, myLocationListener
+            )
+            requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                minTime, minDistance, myLocationListener
+            )
+        }
+    }
+
+    private fun onCurrentLocationChanged(locationLatLngEntity: LocationLatLngEntity) {
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(
+            LatLng(
+                locationLatLngEntity.latitude.toDouble(),
+                locationLatLngEntity.longitude.toDouble()
+            )
+        , CAMERA_ZOOM_LEVEL))
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if(requestCode == PERMISSION_REQUEST_CODE){
+            if(grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED ){
+                setMyLocationListener()
+            }else{
+                Toast.makeText(this, "권한을 받지 못했습니다", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    inner class MyLocationListener: LocationListener{
+        override fun onLocationChanged(location: Location) {
+            val locationLatLngEntity = LocationLatLngEntity(location.latitude.toFloat(), location.longitude.toFloat())
+            onCurrentLocationChanged(locationLatLngEntity)
+        }
+
     }
 
 

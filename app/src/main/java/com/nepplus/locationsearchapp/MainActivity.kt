@@ -75,7 +75,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                     putExtra(SEARCH_RESULT_EXTRA_KEY, it)
                 }
             )
-
         }
     }
 
